@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>澳洲旅遊行程 v5.0 (全功能版)</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ffffff">
+    
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-slide-in { animation: slideIn 0.3s ease-out forwards; }
+        
+        .custom-select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        
+        /* Checkbox 動畫 */
+        .checkbox-wrapper input:checked + div {
+            background-color: #a68d71;
+            border-color: #a68d71;
+        }
+        .checkbox-wrapper input:checked + div svg {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    
+    <div id="root"></div>
+
+    <script type="text/babel">
+        
+        const EXCHANGE_RATE = 21.5;
+
+        // --- 圖示元件 ---
+        const Icons = {
+            Calendar: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+            CreditCard: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>,
+            CheckList: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>,
+            Utensils: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>,
+            Home: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+            MapPin: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
+            Trash: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>,
+            Link: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
+            ChefHat: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z"/><line x1="6" y1="17" x2="18" y2="17"/></svg>,
+            Zap: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+            BookOpen: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
+            Sparkles: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>,
+            Check: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+            Plus: (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        };
+
+        // --- 完整行程資料 ---
+        const RAW_ITINERARY = [
+            { 
+                date: '2026-02-07', 
+                title: '啟程：台北前往雪梨', 
+                activities: [
+                    { time: '23:50', location: '桃園國際機場 (TPE)', type: 'transport', desc: '搭乘中華航空 CI51 前往雪梨。' }
+                ] 
+            },
+            { 
+                date: '2026-02-08', 
+                title: '抵達雪梨：市區探索', 
+                activities: [
+                    { time: '12:10', location: 'Sydney Airport (SYD)', type: 'transport', desc: '抵達並辦理入境。' },
+                    { 
+                        time: '13:30', 
+                        location: '午餐：Haymarket', 
+                        type: 'meal', 
+                        mealType: 'Lunch', 
+                        desc: '1. Ho Jiak Haymarket (4.4★)\nhttps://www.google.com/maps/search/?api=1&query=Ho+Jiak+Haymarket\n2. Single O Surry Hills (4.6★)\nhttps://www.google.com/maps/search/?api=1&query=Single+O+Surry+Hills' 
+                    },
+                    { 
+                        time: '15:00', 
+                        location: 'Meriton Suites Campbell Street', 
+                        type: 'hotel', 
+                        hasKitchen: true, 
+                        hasMicrowave: true, 
+                        desc: '辦理入住。設施：✅ 完整爐台、✅ 微波爐。' 
+                    },
+                    { 
+                        time: '16:10', 
+                        location: 'Circular Quay 環形碼頭', 
+                        type: 'attraction', 
+                        story: '作為雪梨海上交通的樞紐，環形碼頭是感受這座港灣城市活力的最佳起點。左手邊是岩石區與港灣大橋，右手邊是歌劇院，前方則是繁忙的渡輪穿梭於波光粼粼的海面上。這裡也是街頭藝人的聚集地，空氣中飄散著海風與音樂，是遊客必訪的第一站。',
+                        desc: '漫步碼頭，感受港灣氛圍，這裡是前往歌劇院與岩石區的交通樞紐。' 
+                    },
+                    { 
+                        time: '16:30', 
+                        location: 'Sydney Harbour Bridge 港灣大橋', 
+                        type: 'attraction', 
+                        story: '這座被當地人暱稱為「衣架」的鋼鐵拱橋，自 1932 年完工以來就是雪梨的象徵。它是世界上最大的鋼鐵拱橋之一，連接了雪梨南北兩岸。傍晚時分，橋身的鋼鐵結構在夕陽下呈現出獨特的剪影，若是膽子夠大，還可以挑戰攀爬大橋（BridgeClimb），俯瞰整個雪梨港的壯麗景色。',
+                        desc: '近距離欣賞這座宏偉的鋼鐵拱橋，是雪梨最著名的地標之一。' 
+                    },
+                    { 
+                        time: '17:00', 
+                        location: '岩石區市集 The Rocks Market', 
+                        type: 'attraction', 
+                        story: '這裡是歐洲移民最早登陸澳洲的據點，也是雪梨最古老的街區。漫步在鋪滿鵝卵石的巷弄中，兩旁是保存完好的 19 世紀砂岩建築，彷彿穿越時光隧道。週末市集聚集了在地藝術家的手工藝品、原住民風格飾品與街頭美食。你可以從這裡遠眺雪梨歌劇院，感受古老歷史與現代港灣交錯的獨特氛圍。', 
+                        desc: '探索歷史建築與在地手工藝品。' 
+                    },
+                    { 
+                        time: '19:00', 
+                        location: '晚餐：The Rocks', 
+                        type: 'meal', 
+                        mealType: 'Dinner', 
+                        desc: '1. Pancakes On The Rocks (4.1★)\nhttps://www.google.com/maps/search/?api=1&query=Pancakes+On+The+Rocks\n2. The Glenmore Hotel (4.4★)\nhttps://www.google.com/maps/search/?api=1&query=The+Glenmore+Hotel' 
+                    }
+                ] 
+            },
+            { 
+                date: '2026-02-09', 
+                title: '雪梨：文化與自然', 
+                activities: [
+                    { 
+                        time: '09:30', 
+                        location: '塔龍加動物園 Taronga Zoo', 
+                        type: 'attraction', 
+                        story: '這座動物園擁有「全世界最美景觀」的美譽，長頸鹿區背景就是雪梨歌劇院與港灣大橋，是經典明信片場景。這裡致力於野生動物保育，你不可錯過澳洲特有的無尾熊、袋鼠與袋熊。搭乘渡輪前往的過程中，還能從海上以不同視角欣賞雪梨港的壯麗景色。', 
+                        desc: '搭船前往，近距離觀察澳洲動物。' 
+                    },
+                    { 
+                        time: '12:30', 
+                        location: '午餐：Zoo/Mosman', 
+                        type: 'meal', 
+                        mealType: 'Lunch', 
+                        desc: '1. Taronga Food Market (3.8★)\nhttps://www.google.com/maps/search/?api=1&query=Taronga+Food+Market\n2. Ripples Chowder Bay (4.5★)\nhttps://www.google.com/maps/search/?api=1&query=Ripples+Chowder+Bay' 
+                    },
+                    { 
+                        time: '14:30', 
+                        location: '雪梨歌劇院 Sydney Opera House', 
+                        type: 'attraction', 
+                        story: '20 世紀最具代表性的建築之一，由丹麥建築師 Jørn Utzon 設計。其獨特的帆船造型屋頂由超過 100 萬片瑞典製白色磁磚覆蓋，在陽光下閃閃發光。參加內部導覽可以深入了解這座建築奇蹟背後的工程挑戰與爭議歷史，並參觀宏偉的音樂廳，感受世界級的藝術殿堂氣息。', 
+                        desc: '內部中文導覽，了解建築背後故事。' 
+                    },
+                    { 
+                        time: '16:00', 
+                        location: 'Royal Botanic Garden 皇家植物園', 
+                        type: 'attraction', 
+                        story: '這座綠意盎然的植物園緊鄰雪梨歌劇院，是城市中的一片綠洲。園內種植了數千種植物，包括澳洲特有的古老蘇鐵和巨大的無花果樹。沿著海濱步道漫步，不僅能享受芬多精，還能欣賞無敵海景。這裡也是尋找澳洲白䴉（Bin Chicken）和色彩鮮豔鸚鵡的好地方。',
+                        desc: '沿著歌劇院旁順路散步進入植物園，享受城市中的綠洲寧靜，一路走向麥奎里夫人石椅。' 
+                    },
+                    { 
+                        time: '16:30', 
+                        location: '麥奎里夫人石椅', 
+                        type: 'attraction', 
+                        story: '這是一張由囚犯手工在砂岩上雕刻而成的石椅，據說是為了讓總督麥奎里的夫人能在這裡欣賞港灣船隻往來。這裡被公認為拍攝雪梨「明信片式」全景的最佳地點，因為只有在這裡，你才能將雪梨歌劇院與港灣大橋同時框進同一張照片中，特別是黃昏時分，金黃色夕陽灑落在海面上，美不勝收。', 
+                        desc: '拍攝雪梨歌劇院與港灣大橋的絕佳位置。' 
+                    },
+                    { 
+                        time: '18:30', 
+                        location: '晚餐：Circular Quay', 
+                        type: 'meal', 
+                        mealType: 'Dinner', 
+                        desc: '1. Hurricane\'s Grill (4.2★)\nhttps://www.google.com/maps/search/?api=1&query=Hurricane\'s+Grill+Circular+Quay\n2. Gateway Sydney (4.3★)\nhttps://www.google.com/maps/search/?api=1&query=Gateway+Sydney' 
+                    },
+                    {
+                        time: '20:00',
+                        location: 'Meriton Suites Campbell Street',
+                        type: 'hotel',
+                        hasKitchen: true,
+                        hasMicrowave: true,
+                        desc: '返回住宿，享用設施。'
+                    }
+                ] 
+            },
+            { 
+                date: '2026-02-10', 
+                title: '公路旅行：前往坎培拉', 
+                activities: [
+                    { time: '09:00', location: 'World Square (租車)', type: 'transport', desc: '領取 AVIS 租賃車，開始公路旅行。' },
+                    { 
+                        time: '11:00', 
+                        location: 'Bowral 小鎮', 
+                        type: 'attraction', 
+                        story: '位於南部高地的優雅小鎮，以其英式花園、古董店和鬱金香花節聞名。這裡曾是板球傳奇 Don Bradman 的故鄉，充滿了濃厚的懷舊氛圍。漫步在主街上，你會發現許多保留百年的殖民風格建築，以及精緻的咖啡館和書店，是遠離城市喧囂、享受鄉村寧靜的絕佳中繼站。', 
+                        desc: '古典風格的美麗小鎮，稍作停留。' 
+                    },
+                    { 
+                        time: '12:00', 
+                        location: '午餐：Franquette Crêperie', 
+                        type: 'meal', 
+                        mealType: 'Lunch', 
+                        desc: 'Franquette Crêperie (Bowral) - 必吃法式可麗餅名店\nhttp://googleusercontent.com/maps.google.com/BowralCreperie' 
+                    },
+                    { 
+                        time: '14:30', 
+                        location: 'National Museum of Australia', 
+                        type: 'attraction', 
+                        story: '澳洲國立博物館坐落在伯利格里芬湖畔，建築外觀以其色彩繽紛的線條圓環聞名，象徵著原住民的編織藝術。館內收藏了豐富的澳洲社會歷史文物，從原住民的古老傳統到現代澳洲的發展歷程，透過互動式展覽，讓你深入了解這片大陸的故事。其中「澳洲夢花園」的戶外設計更是充滿了象徵意義，值得細細品味。',
+                        desc: '參觀澳洲國立博物館，了解這片土地的歷史。' 
+                    },
+                    { 
+                        time: '16:30', 
+                        location: 'National Carillon & Boundless Playground', 
+                        type: 'attraction', 
+                        story: '國家鐘樓矗立在白楊島上，是英國政府送給坎培拉建城 50 週年的禮物，高 50 公尺，擁有 55 個銅鐘，定時會演奏美妙樂章。旁邊的 Boundless Playground 是坎培拉首座全能力共融式遊樂場，設施新穎且設計貼心，包含巨型鞦韆與水玩區，非常適合在傍晚時分來此散步放鬆，欣賞湖畔夕陽。',
+                        desc: '聆聽鐘樓樂聲，並在旁邊的公園散步。' 
+                    },
+                    { 
+                        time: '17:30', 
+                        location: 'Mount Ainslie Lookout', 
+                        type: 'attraction', 
+                        story: '想要一眼看懂坎培拉這座「被規劃出來的城市」，這裡就是最佳地點。從山頂俯瞰，你可以清楚看到由 Walter Burley Griffin 設計的幾何城市軸線：以國會大廈為中心，街道呈放射狀向外延伸，並與伯利格里芬湖完美融合。這座花園城市的整齊與秩序，在山頂上一覽無遺。', 
+                        desc: '俯瞰坎培拉精心規劃的城市佈局 (日落時分)。' 
+                    },
+                    { 
+                        time: '19:00', 
+                        location: '晚餐：Canberra', 
+                        type: 'meal', 
+                        mealType: 'Dinner', 
+                        desc: '1. Akiba (4.5★)\nhttps://www.google.com/maps/search/?api=1&query=Akiba+Canberra\n2. Grease Monkey (4.5★)\nhttps://www.google.com/maps/search/?api=1&query=Grease+Monkey+Canberra' 
+                    },
+                    { 
+                        time: '20:30', 
+                        location: 'The Sebel Canberra Campbell', 
+                        type: 'hotel', 
+                        hasKitchen: true, 
+                        hasMicrowave: true, 
+                        desc: '入住坎培拉飯店休息。' 
+                    }
+                ] 
+            },
+            { 
+                date: '2026-02-11', 
+                title: '跨州之旅：漫漫長路', 
+                activities: [
+                    { 
+                        time: '08:30', 
+                        location: 'Parliament House 澳洲國會大廈', 
+                        type: 'attraction', 
+                        story: '來到首都怎能不看國會？這座建築依山而建，頂部有一根巨大的旗桿，是坎培拉的地標。設計理念強調「人民在政府之上」，因此遊客可以走到屋頂的草坪上漫步。內部裝潢使用了大量的澳洲木材與大理石，你可以參觀宏偉的大廳、參眾兩院議事廳，感受澳洲民主政治的運作氛圍。',
+                        desc: '參觀新國會大廈，感受澳洲政治中心。' 
+                    },
+                    { time: '10:00', location: 'Drive to Melbourne', type: 'transport', desc: '跨越新南威爾斯與維多利亞州 (長途車程)。' },
+                    { 
+                        time: '13:00', 
+                        location: '午餐：Albury', 
+                        type: 'meal', 
+                        mealType: 'Lunch', 
+                        desc: '1. The River Deck (4.4★)\nhttps://www.google.com/maps/search/?api=1&query=The+River+Deck+Albury\n2. Mama Pho (4.5★)\nhttps://www.google.com/maps/search/?api=1&query=Mama+Pho+Albury' 
+                    },
+                    { time: '18:30', location: '墨爾本南岸 Southbank', type: 'attraction', story: '沿著亞拉河畔延伸的南岸，是墨爾本最具活力的休閒區。這裡匯集了皇冠賭場、高級餐廳與露天酒吧。夜晚時，河畔的煤氣柱會噴出巨大的火球，照亮夜空，非常壯觀。你可以在這裡散步，欣賞對岸墨爾本市中心繁華的天際線與福林德斯車站的古典圓頂。', desc: '抵達墨爾本，享受亞拉河畔夜景。' },
+                    { 
+                        time: '20:00', 
+                        location: 'Adina Apartment Hotel Melbourne Southbank', 
+                        type: 'hotel', 
+                        hasKitchen: true, 
+                        hasMicrowave: true, 
+                        desc: '辦理入住，設施齊全。' 
+                    }
+                ] 
+            },
+            { 
+                date: '2026-02-12', 
+                title: '墨爾本：市場與企鵝', 
+                activities: [
+                    { time: '09:00', location: 'South Melbourne Market', type: 'attraction', story: '這是墨爾本歷史最悠久的市場之一，深受在地人喜愛。不同於維多利亞市場的觀光化，這裡更有生活感。必吃的美食包括新鮮現開的塔斯馬尼亞生蠔、排隊名店 Agathé Patisserie 的法式可頌，以及香氣四溢的西班牙大鍋飯。這裡也是尋找澳洲設計師小物和精緻居家用品的好地方。', desc: '品嚐生蠔、可頌與在地新鮮食材。' },
+                    { 
+                        time: '12:30', 
+                        location: '午餐：Brighton', 
+                        type: 'meal', 
+                        mealType: 'Lunch', 
+                        desc: '1. The Baths Middle Brighton (4.3★)\nhttps://www.google.com/maps/search/?api=1&query=The+Baths+Middle+Brighton\n2. Pantry Brighton (4.3★)\nhttps://www.google.com/maps/search/?api=1&query=Pantry+Brighton' 
+                    },
+                    { time: '13:30', location: 'Brighton Beach 彩虹小屋', type: 'attraction', story: '這 82 間色彩繽紛的木造更衣小屋，整齊排列在沙灘上，是墨爾本最經典的打卡地標。這些小屋建於維多利亞時期，每一間都擁有獨特的彩繪圖案，有的繪有澳洲國旗，有的則是幾何圖形。搭配碧海藍天與遠處的城市景觀，是攝影愛好者的天堂。', desc: '經典海邊彩色小屋。' },
+                    { time: '14:30', location: 'Moonlit Sanctuary', type: 'attraction', story: '相較於大型動物園，這裡提供了更親密自然的互動體驗。你可以親手餵食可愛的小袋鼠（Wallaby），牠們會溫柔地抓著你的手吃飼料。這裡也致力於保育瀕危物種，除了無尾熊合照外，還能看到瀕臨絕種的袋獾（Tasmanian Devil）和澳洲特有的夜行性動物。', desc: '與無尾熊和袋鼠近距離互動。' },
+                    { 
+                        time: '18:00', 
+                        location: '晚餐：Phillip Island', 
+                        type: 'meal', 
+                        mealType: 'Dinner', 
+                        desc: '1. San Remo Fisherman\'s Co-op (4.2★)\nhttps://www.google.com/maps/search/?api=1&query=San+Remo+Fisherman\'s+Co-op\n2. Pino\'s Trattoria (4.4★)\nhttps://www.google.com/maps/search/?api=1&query=Pino\'s+Trattoria+Phillip+Island' 
+                    },
+                    { time: '19:45', location: 'Phillip Island 企鵝歸巢', type: 'attraction', story: '這是大自然最感人的一幕。每當日落黃昏，成群結隊的野生小企鵝（Little Penguins）會結束一天的捕魚工作，從海裡衝上沙灘，搖搖擺擺地走回沙丘中的巢穴。為了保護牠們的眼睛，現場嚴禁拍照，這反而讓你能更專注地用眼睛和心靈去記錄這場生命奇蹟，感受萬物歸巢的溫馨。', desc: '觀看神仙企鵝搖搖擺擺上岸。' },
+                    {
+                        time: '21:30',
+                        location: 'Adina Apartment Hotel Melbourne Southbank',
+                        type: 'hotel',
+                        hasKitchen: true,
+                        hasMicrowave: true,
+                        desc: '返回墨爾本市區住宿。'
+                    }
+                ] 
+            },
+            { 
+                date: '2026-02-13', 
+                title: '森林火車體驗', 
+                activities: [
+                    { time: '11:00', location: 'Belgrave Station', type: 'transport', desc: '⚠️ 請務必先進行報到，並到窗口兌換實體車票。' },
+                    { time: '12:30', location: 'Puffing Billy Railway', type: 'attraction', story: '普芬比利是澳洲最古老且保存最完好的蒸汽火車之一，最初是為了運送木材而建。最特別的體驗方式就是可以將雙腳懸掛在車廂窗外，感受微風拂面與穿越丹頓農山脈原始蕨類森林的快感。火車行經蒙布克溪棧橋（Monbulk Creek Trestle Bridge）時，是整趟旅程的高潮，記得向橋下的人們揮手致意！', desc: '著名的普芬比利蒸汽火車森林之旅。' },
+                    { 
+                        time: '13:30', 
+                        location: '午餐：Belgrave', 
+                        type: 'meal', 
+                        mealType: 'Lunch', 
+                        desc: '1. Micawber Tavern (4.6★)\nhttps://www.google.com/maps/search/?api=1&query=Micawber+Tavern\n2. Earthly Pleasures Cafe (4.5★)\nhttps://www.google.com/maps/search/?api=1&query=Earthly+Pleasures+Cafe' 
+                    },
+                    { time: '16:00', location: 'Dandenong Ranges', type: 'attraction', story: '丹頓農山脈被稱為墨爾本的後花園，這裡有著高聳入雲的尤加利樹林與巨大的蕨類植物，充滿了侏羅紀公園般的原始感。散落在山間的小鎮如 Sassafras 和 Olinda，充滿了童話色彩，有許多販售手工藝品、精油與著名的司康餅（Scones）的茶屋，非常適合悠閒漫步。', desc: '探索丹頓農山脈的古董小鎮。' },
+                    { 
+                        time: '19:00', 
+                        location: '晚餐：Melbourne', 
+                        type: 'meal', 
+                        mealType: 'Dinner', 
+                        desc: '1. Stalactites (4.4★)\nhttps://www.google.com/maps/search/?api=1&query=Stalactites+Melbourne\n2. Hakata Gensuke (4.4★)\nhttps://www.google.com/maps/search/?api=1&query=Hakata+Gensuke+Melbourne' 
+                    },
+                    {
+                        time: '20:30',
+                        location: 'Adina Apartment Hotel Melbourne Southbank',
+                        type: 'hotel',
+                        hasKitchen: true,
+                        hasMicrowave: true,
+                        desc: '住宿休息。'
+                    }
+                ] 
+            },
+            { 
+                date: '2026-02-14', 
+                title: '墨爾本市區漫遊', 
+                activities: [
+                    { time: '09:30', location: 'Queen Victoria Market', type: 'attraction', story: '南半球最大的露天市場，也是墨爾本的靈魂廚房。這裡劃分為多個區域，從新鮮蔬果、肉類海鮮到服飾紀念品應有盡有。一定要去熟食區（Deli Hall）逛逛，這裡有各式各樣的起司、醃肉和沾醬。市場旁的餐車區也是必訪，熱騰騰的果醬甜甜圈車（American Doughnut Kitchen）永遠大排長龍。', desc: '維多利亞女王市場，採買紀念品與美食。' },
+                    { 
+                        time: '11:00', 
+                        location: 'State Library Victoria 州立圖書館', 
+                        type: 'attraction', 
+                        story: '這座圖書館成立於 1854 年，是澳洲最古老的公共圖書館。其中最著名的 La Trobe 閱覽室擁有巨大的八角形圓頂，自然光透過天窗灑落，營造出神聖而寧靜的閱讀氛圍，被譽為世界上最美的圖書館之一。這裡不僅是知識的殿堂，也是攝影愛好者的必訪之地。',
+                        desc: '參觀世界最美圖書館之一的閱覽室。' 
+                    },
+                    {
+                        time: '12:00',
+                        location: 'St Patrick\'s Cathedral 聖巴特利爵主教座堂',
+                        type: 'attraction',
+                        story: '這座宏偉的歌德復興式教堂是澳洲最高的教堂，尖塔高聳入雲。使用獨特的青石（Bluestone）建造，呈現出深沉而莊嚴的色調。教堂內部的彩繪玻璃窗光影迷人，且周圍環繞著美麗的英式花園與噴泉，是喧囂城市中一處寧靜的避風港。',
+                        desc: '澳洲最高的教堂，歌德復興式建築風格，莊嚴肅穆。'
+                    },
+                    { 
+                        time: '13:00', 
+                        location: '午餐：Market/City', 
+                        type: 'meal', 
+                        mealType: 'Lunch', 
+                        desc: '1. The Bratwurst Shop (4.5★)\nhttps://www.google.com/maps/search/?api=1&query=The+Bratwurst+Shop+Melbourne\n2. Market Lane Coffee (4.8★)\nhttps://www.google.com/maps/search/?api=1&query=Market+Lane+Coffee' 
+                    },
+                    { 
+                        time: '14:30', 
+                        location: 'Hosier Lane 塗鴉巷', 
+                        type: 'attraction', 
+                        story: '墨爾本被譽為世界街頭藝術之都，而 Hosier Lane 就是其代表作。這條鵝卵石鋪成的巷弄牆面上，覆蓋著層層疊疊的塗鴉創作，從巨大的壁畫到小巧的模板噴漆，風格強烈且色彩鮮豔。這裡的藝術作品更換速度極快，每次造訪都能看到全新的創作，充滿了生猛的城市活力。',
+                        desc: '墨爾本最著名的街頭藝術巷弄，感受強烈的城市次文化。' 
+                    },
+                    { 
+                        time: '15:00', 
+                        location: 'St Paul\'s Cathedral 聖保羅大教堂', 
+                        type: 'attraction', 
+                        story: '聖保羅大教堂位於市中心最繁忙的角落，與聯邦廣場和弗林德斯車站形成鮮明對比。這座新歌德式建築由英國建築師 William Butterfield 設計，以其獨特的砂岩與石灰岩條紋外觀聞名。內部精緻的馬賽克地磚與木雕工藝，展現了維多利亞時代的工藝極致。',
+                        desc: '位於市中心心臟地帶，與聯邦廣場和車站形成著名的地標三角。' 
+                    },
+                    { 
+                        time: '15:30', 
+                        location: 'Flinders Street Railway Station', 
+                        type: 'attraction', 
+                        story: '這是墨爾本最經典的地標，也是澳洲最古老的火車站。其鮮豔的黃色外牆、綠色銅圓頂與拱門下的時鐘，是這座城市最鮮明的記憶。「在時鐘下見」是墨爾本人延續百年的約會傳統。夜晚亮燈後，整座車站更顯得金碧輝煌，充滿復古魅力。',
+                        desc: '墨爾本最經典的標誌性建築，金黃色外觀的百年火車站。' 
+                    },
+                    { 
+                        time: '16:00', 
+                        location: 'Federation Square 聯邦廣場', 
+                        type: 'attraction', 
+                        story: '聯邦廣場以其大膽、幾何且解構主義的現代建築風格而聞名，與對面的古典車站形成強烈對比。地面鋪設的砂岩來自西澳，象徵著澳洲的廣大。這裡匯集了澳洲影像中心（ACMI）與伊恩波特中心（NGV Australia），是墨爾本的文化心臟與大型活動舉辦地。',
+                        desc: '充滿現代幾何設計感的公共廣場，也是藝文活動中心。' 
+                    },
+                    { 
+                        time: '18:30', 
+                        location: '晚餐：CBD/Chinatown', 
+                        type: 'meal', 
+                        mealType: 'Dinner', 
+                        desc: '1. Chin Chin (4.3★)\nhttps://www.google.com/maps/search/?api=1&query=Chin+Chin+Melbourne\n2. Shanghai Street (4.1★)\nhttps://www.google.com/maps/search/?api=1&query=Shanghai+Street+Melbourne' 
+                    },
+                    {
+                        time: '20:30',
+                        location: 'Adina Apartment Hotel Melbourne Southbank',
+                        type: 'hotel',
+                        hasKitchen: true,
+                        hasMicrowave: true,
+                        desc: '住宿休息。'
+                    }
+                ] 
+            },
+            { 
+                date: '2026-02-15', 
+                title: '大洋路：壯闊海岸', 
+                activities: [
+                    { 
+                        time: '09:00', 
+                        location: 'Torquay (Surf Coast)', 
+                        type: 'attraction', 
+                        story: '托爾坎是著名的衝浪聖地，也是知名品牌 Rip Curl 和 Quiksilver 的發源地。附近的貝爾斯海灘（Bells Beach）每年舉辦世界級衝浪大賽。這裡擁有悠閒的海濱氛圍，是大洋路旅程的完美起點，一定要去衝浪博物館逛逛，或是在海灘邊喝杯咖啡感受浪人文化。',
+                        desc: '衝浪品牌發源地，大洋路的起點城鎮。' 
+                    },
+                    { 
+                        time: '10:00', 
+                        location: 'Split Point Lighthouse', 
+                        type: 'attraction', 
+                        story: '這座擁有紅色頂蓋的燈塔，因為像極了戴著小紅帽，而被暱稱為「小紅帽燈塔」。它靜靜地矗立在海岸邊守護著過往船隻。沿著燈塔步道行走，你可以欣賞到壯麗的鷹岩（Eagle Rock）海洋保護區景色，運氣好的話，還能看到在海面上噴氣的鯨魚。', 
+                        desc: '紅帽燈塔。' 
+                    },
+                    { 
+                        time: '11:00', 
+                        location: 'Memorial Arch at Eastern View', 
+                        type: 'attraction', 
+                        story: '這座橫跨在公路上的木製拱門，標誌著這條全世界最美公路的正式起點。大洋路是為了紀念第一次世界大戰歸來的士兵而建，他們徒手在懸崖峭壁間開鑿出這條道路，因此大洋路也是世界上最大的戰爭紀念碑。在這裡拍照留念，不僅是打卡，更是對這項偉大工程與歷史的致敬。', 
+                        desc: '大洋路紀念牌坊，拍照留念。' 
+                    },
+                    { 
+                        time: '13:00', 
+                        location: '午餐：Lorne', 
+                        type: 'meal', 
+                        mealType: 'Lunch', 
+                        desc: '1. The Bottle of Milk (4.5★)\nhttps://www.google.com/maps/search/?api=1&query=The+Bottle+of+Milk+Lorne\n2. Lorne Hotel (4.1★)\nhttps://www.google.com/maps/search/?api=1&query=Lorne+Hotel' 
+                    },
+                    { 
+                        time: '15:00', 
+                        location: 'Kennett River', 
+                        type: 'attraction', 
+                        story: '如果你想在野外看到無尾熊，來這裡就對了。肯尼特河沿岸的尤加利樹林是野生無尾熊的熱門棲息地，只要抬頭仔細尋找，通常都能發現牠們慵懶地抱著樹幹睡覺。此外，這裡也是國王鸚鵡（King Parrots）和深紅玫瑰鸚鵡的聚集地，這些色彩鮮豔的鳥兒非常親人，常會飛到遊客的手上或肩上。', 
+                        desc: '尋找野生無尾熊與色彩繽紛的鸚鵡。' 
+                    },
+                    {
+                        time: '17:00',
+                        location: 'Maits Rest Rainforest Walk',
+                        type: 'attraction',
+                        story: '這是一條輕鬆易走的環形木棧道，帶你深入古老的冷溫帶雨林。這裡生長著樹齡超過 300 年的巨大桃金孃山毛櫸（Myrtle Beech）和高聳的樹蕨。陽光透過茂密的樹冠灑落，空氣中充滿了泥土與芬多精的香氣，彷彿走進了侏羅紀時代的原始森林，是感受大洋路綠色魅力的絕佳景點。',
+                        desc: '漫步在古老的雨林棧道，欣賞巨大的神木與蕨類植物，享受芬多精。'
+                    },
+                    { 
+                        time: '18:30', 
+                        location: 'Apollo Bay Seal Apartments', 
+                        type: 'hotel', 
+                        hasKitchen: true, 
+                        hasMicrowave: true, 
+                        desc: '入住阿波羅灣。' 
+                    },
+                    { 
+                        time: '19:00', 
+                        location: '晚餐：Apollo Bay', 
+                        type: 'meal', 
+                        mealType: 'Dinner', 
+                        desc: '1. Fishermen\'s Co-Op (4.2★)\nhttps://www.google.com/maps/search/?api=1&query=Apollo+Bay+Fishermen\'s+Co-Op\n2. Brewhouse (4.2★)\nhttps://www.google.com/maps/search/?api=1&query=Great+Ocean+Road+Brewhouse' 
+                    }
+                ] 
+            },
+            { 
+                date: '2026-02-16', 
+                title: '大洋路：奇岩見證', 
+                activities: [
+                    { time: '09:30', location: 'Twelve Apostles', type: 'attraction', story: '這是大洋路最精華的景點。數百萬年前，這些石灰岩原本是陸地的一部分，經過海浪與強風長年累月的侵蝕，逐漸分離成洞穴、拱門，最後剩下這些矗立在海中的孤立石柱。雖然名為十二門徒，但因自然倒塌目前僅存七座左右。面對這大自然的鬼斧神工，聽著波濤洶湧的海浪聲，你會深深感受到人類的渺小與自然的偉大。', desc: '十二門徒岩震撼海蝕景觀。' },
+                    { time: '11:00', location: 'Loch Ard Gorge', type: 'attraction', story: '洛克阿德峽谷擁有險峻的黃色峭壁與碧綠海水，景色絕美卻也藏著一段悲傷故事。1878 年，一艘名為 Loch Ard 的移民船在此觸礁沈沒，全船僅有一名少年水手與一名少女乘客倖存，他們被沖刷到這個峽谷的沙灘上獲救。走下階梯來到沙灘，被高聳岩壁包圍，彷彿置身於世外桃源。', desc: '洛克阿德峽谷與悲傷傳說。' },
+                    { 
+                        time: '12:30', 
+                        location: 'Port Campbell', 
+                        type: 'attraction', 
+                        story: '坎貝爾港是大洋路上最迷人的海濱小鎮之一，擁有天然的避風港灣。這裡曾是早期補給船隻停靠的重要港口，現在則以捕撈小龍蝦聞名。鎮上氛圍悠閒，周圍被國家公園環繞，擁有許多可愛的咖啡館和商店，是探索十二門徒岩後最佳的休憩點。',
+                        desc: '風景如畫的海濱小鎮，適合稍作休息與午餐。' 
+                    },
+                    { 
+                        time: '13:00', 
+                        location: '午餐：Port Campbell', 
+                        type: 'meal', 
+                        mealType: 'Lunch', 
+                        desc: '1. 12 Rocks Beach Bar (4.3★)\nhttps://www.google.com/maps/search/?api=1&query=12+Rocks+Beach+Bar\n2. Grassroots Deli (4.6★)\nhttps://www.google.com/maps/search/?api=1&query=Grassroots+Deli+Cafe' 
+                    },
+                    { time: '15:00', location: 'London Bridge 倫敦斷橋', type: 'attraction', story: '這座天然岩石拱橋原本與陸地相連，遊客可以走到盡頭。但在 1990 年的一個傍晚，連接陸地的部分突然崩塌，當時還有兩名遊客被困在斷裂後的「島」上（後來被直升機救出）。這個地質事件活生生地展示了海岸侵蝕的進行式，也讓這座斷橋成為大洋路變化無常的最佳見證。', desc: '大自然的雕琢奇觀。' },
+                    {
+                        time: '16:30',
+                        location: 'Tower Hill Wildlife Reserve',
+                        type: 'attraction',
+                        story: '塔山是維多利亞州第一個國家公園，也是一座巨大的休眠火山口。這裡擁有獨特的濕地生態系統，是野生動物的天堂。開車進入火山口，你很容易就能在路邊看到鴯鶓（Emu）、無尾熊和袋鼠。這裡也蘊含著豐富的原住民歷史，遊客中心本身就極具建築特色。',
+                        desc: '位於火山口內的野生動物保護區，很容易遇到野生鴯鶓、無尾熊和袋鼠。'
+                    },
+                    {
+                        time: '17:30',
+                        location: 'Lake Pertobe Adventure Playground',
+                        type: 'attraction',
+                        story: '這被譽為澳洲最好的冒險遊樂場之一，佔地廣闊，擁有多座湖泊與小島。孩子們可以在這裡玩飛狐滑索（Flying Fox）、巨型迷宮、沙坑和各種攀爬設施。公園內還有腳踏船可以租借，以及完善的烤肉區，是家庭旅遊絕對不能錯過的放電聖地。',
+                        desc: '瓦南布爾著名的超大冒險遊樂場，孩子放電的最佳去處。'
+                    },
+                    { 
+                        time: '19:00', 
+                        location: 'Quest Warrnambool', 
+                        type: 'hotel', 
+                        hasKitchen: true, 
+                        hasMicrowave: true, 
+                        desc: '入住瓦南布爾。' 
+                    },
+                    { 
+                        time: '19:30', 
+                        location: '晚餐：Warrnambool', 
+                        type: 'meal', 
+                        mealType: 'Dinner', 
+                        desc: '1. Simon\'s Waterfront (4.3★)\nhttps://www.google.com/maps/search/?api=1&query=Simon\'s+Waterfront\n2. The Liebig (4.5★)\nhttps://www.google.com/maps/search/?api=1&query=The+Liebig' 
+                    }
+                ] 
+            },
+            { 
+                date: '2026-02-17', 
+                title: '疏芬山淘金歷史', 
+                activities: [
+                    { 
+                        time: '10:30', 
+                        location: 'Sovereign Hill 疏芬山', 
+                        type: 'attraction', 
+                        story: '疏芬山是一座「活生生」的博物館，完美重現了 1850 年代維多利亞淘金熱時期的巴拉瑞特。這裡的街道、商店、學校甚至保齡球館都依照當年樣貌建造，工作人員穿著古裝，演繹著當年的生活。你可以親自下到礦坑體驗黑暗的地下工作環境，也可以在小溪邊拿著鐵盤試試運氣，說不定真的能淘到金沙帶回家！', 
+                        desc: '必玩重點：\n1. 地下礦坑 Mine Tour (編號 35)\n2. 掏金體驗 Pan for gold (編號 8)\n3. 糖果製作秀 14:00/15:00 (編號 27)\n4. 保齡球店 Bowling Saloon (編號 40)' 
+                    },
+                    { 
+                        time: '13:00', 
+                        location: '午餐：Sovereign Hill', 
+                        type: 'meal', 
+                        mealType: 'Lunch', 
+                        desc: '1. New York Bakery (園區內)\nhttps://www.google.com/maps/search/?api=1&query=New+York+Bakery+Sovereign+Hill\n2. Hope Bakery (園區內)\nhttps://www.google.com/maps/search/?api=1&query=Hope+Bakery+Sovereign+Hill' 
+                    },
+                    { 
+                        time: '18:00', 
+                        location: '晚餐：Ballarat', 
+                        type: 'meal', 
+                        mealType: 'Dinner', 
+                        desc: '1. The Forge Pizzeria (4.5★)\nhttps://www.google.com/maps/search/?api=1&query=The+Forge+Pizzeria+Ballarat\n2. Hop Temple (4.5★)\nhttps://www.google.com/maps/search/?api=1&query=Hop+Temple+Ballarat' 
+                    },
+                    { time: '19:00', location: '南十字星之血聲光秀', type: 'attraction', story: '這是一場震撼的戶外聲光秀，講述了 1854 年發生的「尤里卡圍欄起義」（Eureka Stockade）。這是澳洲歷史上唯一的武裝起義，礦工們為了反抗不合理的採礦執照費而與政府軍衝突。透過光影投射在廣闊的戶外場景，配合激昂的音效，你將身歷其境地感受那段追求民主與自由的血淚歷史。', desc: '夜間聲光大秀描述歷史故事。' },
+                    { 
+                        time: '21:00', 
+                        location: 'Quest Ballarat Station', 
+                        type: 'hotel', 
+                        hasKitchen: true, 
+                        hasMicrowave: true, 
+                        desc: '入住巴拉瑞特。' 
+                    }
+                ] 
+            },
+            { 
+                date: '2026-02-18', 
+                title: '重返雪梨', 
+                activities: [
+                    { time: '11:00', location: 'Ballarat 漫步', type: 'attraction', story: '巴拉瑞特因淘金熱而致富，這份富裕反映在市區宏偉的維多利亞式建築上。Lydiard Street 是澳洲保存最完好的歷史街道之一，兩旁矗立著華麗的銀行、劇院與旅館建築。漫步其中，欣賞精緻的石雕與鑄鐵陽台，想像百年前這裡車水馬龍、黃金遍地的繁華景象。', desc: '最後感受維多利亞建築。' },
+                    { 
+                        time: '12:30', 
+                        location: '午餐：Melbourne Airport', 
+                        type: 'meal', 
+                        mealType: 'Lunch', 
+                        desc: '1. Urban Providore (4.6★)\nhttps://www.google.com/maps/search/?api=1&query=Urban+Providore\n2. Hanna\'s Cafe (4.7★)\nhttps://www.google.com/maps/search/?api=1&query=Hanna\'s+Cafe+Tullamarine' 
+                    },
+                    { time: '14:30', location: 'MEL Airport (還車)', type: 'transport', desc: '結束維多利亞公路旅行。' },
+                    { time: '17:25', location: 'Jetstar JQ526', type: 'transport', desc: '飛往雪梨。' },
+                    { 
+                        time: '20:00', 
+                        location: 'A by Adina Sydney', 
+                        type: 'hotel', 
+                        hasKitchen: true, 
+                        hasMicrowave: true, 
+                        desc: '入住雪梨市中心頂級套房。' 
+                    },
+                    { 
+                        time: '20:30', 
+                        location: '晚餐：Sydney Wynyard', 
+                        type: 'meal', 
+                        mealType: 'Dinner', 
+                        desc: '1. Bar Luca (4.6★)\nhttps://www.google.com/maps/search/?api=1&query=Bar+Luca+Sydney\n2. Mr. Wong (4.4★)\nhttps://www.google.com/maps/search/?api=1&query=Mr+Wong+Sydney' 
+                    }
+                ] 
+            },
+            { 
+                date: '2026-02-19', 
+                title: '藍山深度遊', 
+                activities: [
+                    { 
+                        time: '07:30', 
+                        location: 'Central Station Forecourt', 
+                        type: 'transport', 
+                        desc: 'KKDAY 一日遊集合上車地點。' 
+                    },
+                    { 
+                        time: '09:00', 
+                        location: '雪梨動物園 Sydney Zoo', 
+                        type: 'attraction', 
+                        story: '這是一座相對較新的動物園，主打現代化、無柵欄的開放式設計。這裡不僅有豐富的澳洲本土動物，還有許多來自非洲與亞洲的珍稀物種。最特別的是園區內設有原住民文化體驗區，在觀賞動物的同時，也能學習澳洲原住民與土地、動物之間深厚的精神連結。', 
+                        desc: 'KKDAY 送免費無尾熊照片 & 袋鼠餵食。' 
+                    },
+                    { 
+                        time: '12:30', 
+                        location: '午餐：Leura', 
+                        type: 'meal', 
+                        mealType: 'Lunch', 
+                        desc: '1. Leura Garage (4.5★)\nhttps://www.google.com/maps/search/?api=1&query=Leura+Garage\n2. Loaves & Dishes (4.2★)\nhttps://www.google.com/maps/search/?api=1&query=Loaves+and+the+Dishes' 
+                    },
+                    { time: '14:00', location: '景觀世界 Scenic World', type: 'attraction', story: '來到藍山必遊的景點。你可以搭乘三種不同的纜車體驗藍山的壯闊：全世界最陡峭的森林火車（Railway）以 52 度傾角直衝谷底；空中纜車（Skyway）帶你懸空穿越峽谷，透過玻璃底板俯瞰雨林與瀑布；索道纜車（Cableway）則平穩地帶你進出傑米遜山谷。三姐妹岩的傳說與藍山特有的藍色霧氣（尤加利樹油揮發造成），讓這裡充滿神秘感。', desc: '搭乘最陡峭鐵路俯瞰三姐妹岩。' },
+                    { 
+                        time: '18:30', 
+                        location: '晚餐：Katoomba/City', 
+                        type: 'meal', 
+                        mealType: 'Dinner', 
+                        desc: '1. Station Bar Pizza (4.5★)\nhttps://www.google.com/maps/search/?api=1&query=Station+Bar+and+Woodfired+Pizza\n2. Mamak (4.4★)\nhttps://www.google.com/maps/search/?api=1&query=Mamak+Haymarket' 
+                    },
+                    {
+                        time: '20:30',
+                        location: 'A by Adina Sydney',
+                        type: 'hotel',
+                        hasKitchen: true,
+                        hasMicrowave: true,
+                        desc: '住宿休息。'
+                    }
+                ] 
+            },
+            { 
+                date: '2026-02-20', 
+                title: '雪梨最後巡禮', 
+                activities: [
+                    { time: '10:00', location: '聖安德烈座堂', type: 'attraction', story: '這座座堂位於繁華的市政廳旁，是澳洲最古老的座堂。典型的哥德復興式建築風格，擁有精緻的彩色玻璃窗、飛扶壁與尖塔。走進教堂內部，外面的車水馬龍瞬間被厚重的石牆隔絕，巨大的管風琴與挑高的拱頂營造出莊嚴神聖的氛圍，是市中心的一方淨土。', desc: '市中心壯麗的歌德式座堂。' },
+                    { time: '12:00', location: '維多利亞女王大廈 (QVB)', type: 'attraction', story: 'QVB 被法國設計師皮爾卡登譽為「世界上最美麗的購物中心」。這座羅馬復興式建築原建於 1898 年，擁有巨大的中央圓頂與精緻的彩色玻璃窗。內部懸掛著兩座巨大的機械時鐘，分別展示澳洲歷史與英國皇室故事。即使不購物，光是欣賞其建築細節、馬賽克地磚與古董電梯，就已是一大享受。', desc: '拜占庭風格歷史建築，血拼伴手禮。' },
+                    {
+                        time: '16:00',
+                        location: 'Tumbalong Park Playground',
+                        type: 'attraction',
+                        story: '位於達令港核心地帶的 Tumbalong Park 擁有雪梨最棒的免費兒童遊樂場之一。這裡以「水」為主題，設有豐富的噴水設施（夏季必備！）、巨型滑梯、攀爬網與極具挑戰性的飛狐滑索。家長可以在旁邊的草地野餐休憩，是孩子們盡情放電的快樂天堂。',
+                        desc: '達令港旁的大型兒童遊樂場，設施豐富還有戲水區，非常適合親子同樂。'
+                    },
+                    { 
+                        time: '18:00', 
+                        location: '晚餐：QVB/Town Hall', 
+                        type: 'meal', 
+                        mealType: 'Dinner', 
+                        desc: '1. The Grounds of City (4.4★)\nhttps://www.google.com/maps/search/?api=1&query=The+Grounds+of+the+City\n2. Lotus The Galeries (4.3★)\nhttps://www.google.com/maps/search/?api=1&query=Lotus+The+Galeries' 
+                    },
+                    { time: '22:00', location: 'Sydney Airport (SYD)', type: 'transport', desc: '準備返程。' }
+                ] 
+            },
+            { 
+                date: '2026-02-21', 
+                title: '抵達台灣', 
+                activities: [
+                    { time: '04:20', location: '桃園國際機場 (TPE)', type: 'transport', desc: '平安歸國。' }
+                ] 
+            }
+        ];
+
+        // --- 預設待辦事項 ---
+        const DEFAULT_TODOS = [
+            { id: 1, text: '檢查護照有效期 (至少6個月)', completed: false, note: '' },
+            { id: 2, text: '申請澳洲電子簽證 (ETA)', completed: false, note: '下載 Australian ETA App 申請' },
+            { id: 3, text: '購買旅遊保險', completed: false, note: '' },
+            { id: 4, text: '預訂網卡/開通漫遊', completed: false, note: '' },
+            { id: 5, text: '列印機票與住宿憑證', completed: false, note: '' },
+            { id: 6, text: '準備轉接頭 (八字型)', completed: false, note: '' },
+            { id: 7, text: '換匯/確認信用卡國外交易', completed: false, note: '' },
+            { id: 8, text: '線上辦理登機 (起飛前24-48hr)', completed: false, note: '' }
+        ];
+
+        // --- 主程式介面 ---
+        const App = () => {
+            const [view, setView] = React.useState('plan');
+            const [dayIdx, setDayIdx] = React.useState(0);
+            
+            // State: Expenses with Persistence
+            const [expenses, setExpenses] = React.useState(() => {
+                const saved = localStorage.getItem('travel_expenses');
+                return saved ? JSON.parse(saved) : [];
+            });
+
+            // State: Todos with Persistence
+            const [todos, setTodos] = React.useState(() => {
+                const saved = localStorage.getItem('travel_todos');
+                return saved ? JSON.parse(saved) : DEFAULT_TODOS;
+            });
+
+            React.useEffect(() => {
+                localStorage.setItem('travel_expenses', JSON.stringify(expenses));
+            }, [expenses]);
+
+            React.useEffect(() => {
+                localStorage.setItem('travel_todos', JSON.stringify(todos));
+            }, [todos]);
+
+            const totalTwd = expenses.reduce((s, e) => s + e.aud * EXCHANGE_RATE, 0);
+
+            // Todo Handlers
+            const addTodo = (text) => {
+                if(!text.trim()) return;
+                setTodos([...todos, { id: Date.now(), text, completed: false, note: '' }]);
+            };
+
+            const toggleTodo = (id) => {
+                setTodos(todos.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+            };
+
+            const deleteTodo = (id) => {
+                setTodos(todos.filter(t => t.id !== id));
+            };
+
+            const updateNote = (id, note) => {
+                setTodos(todos.map(t => t.id === id ? { ...t, note } : t));
+            };
+
+            // Google Maps 連結生成器
+            const getMapLink = (loc) => {
+                let query = loc.split('(')[0].trim();
+                if (query.includes('\n')) query = query.split('\n')[0];
+                if (loc.includes('Airport')) query = loc; 
+                return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+            };
+
+            const renderDesc = (text) => {
+                if(!text) return null;
+                return text.split('\n').map((line, i) => {
+                    if(line.startsWith('http')) {
+                        return (
+                            <a key={i} href={line} target="_blank" className="text-[#57534e] text-[10px] font-bold border-b border-[#a68d71] block mb-2 mt-0.5 flex items-center gap-1 w-fit hover:text-[#a68d71] transition-colors">
+                                <Icons.Link className="w-3"/> Google Maps 導航
+                            </a>
+                        );
+                    }
+                    return <span key={i} className="block mb-0.5 font-medium">{line}</span>;
+                });
+            };
+
+            return (
+                <div className="min-h-screen pb-28 max-w-md mx-auto bg-[#fcfaf7] shadow-xl relative flex flex-col">
+                    <header className="p-5 bg-[#fcfaf7]/90 backdrop-blur-md sticky top-0 z-40 border-b border-[#e5ded8] shadow-sm">
+                        <div className="flex justify-between items-center mb-4">
+                            <div>
+                                <h1 className="text-[10px] font-bold tracking-[0.3em] uppercase text-[#7f7870]">Australia 2026</h1>
+                                <p className="text-xl font-light mt-1 text-[#4a4a4a]">澳洲極簡之行</p>
+                            </div>
+                            <div className="w-10 h-10 rounded-full bg-white border border-[#e5ded8] flex items-center justify-center text-[#a68d71] shadow-sm">
+                                <Icons.Sparkles className="w-5" />
+                            </div>
+                        </div>
+
+                        {view === 'plan' && (
+                            <div className="relative">
+                                <select 
+                                    value={dayIdx} 
+                                    onChange={(e) => setDayIdx(Number(e.target.value))}
+                                    className="w-full bg-white border border-[#e5ded8] text-[#4a4a4a] text-sm rounded-xl py-3 pl-4 pr-10 focus:outline-none focus:border-[#a68d71] shadow-sm custom-select font-medium appearance-none"
+                                >
+                                    {RAW_ITINERARY.map((d, i) => (
+                                        <option key={i} value={i}>
+                                            Day {i+1} - {d.date.split('-')[2]} Feb: {d.title.split('：')[0]}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                    </header>
+
+                    <main className="flex-1 p-6 pt-2">
+                        {view === 'plan' && (
+                            <div className="space-y-6 animate-slide-in">
+                                <div className="mt-4 border-l-4 border-[#7f7870] pl-4">
+                                    <h2 className="text-xl font-medium tracking-tight text-[#4a4a4a]">{RAW_ITINERARY[dayIdx].title}</h2>
+                                    <p className="text-[10px] text-[#a68d71] font-bold uppercase mt-1 tracking-widest">{new Date(RAW_ITINERARY[dayIdx].date).toLocaleDateString('zh-TW', {weekday:'long'})}</p>
+                                </div>
+
+                                <div className="relative timeline-line space-y-10">
+                                    {RAW_ITINERARY[dayIdx].activities.map((act, i) => {
+                                        const isMeal = act.type === 'meal';
+                                        const isHotel = act.type === 'hotel';
+                                        
+                                        return (
+                                            <div key={i} className="relative pl-10 group">
+                                                <div className={`absolute left-0 top-1.5 w-[22px] h-[22px] rounded-full border-4 border-[#fcfaf7] z-10 flex items-center justify-center shadow-sm ${isMeal ? 'bg-[#d9c5b2]' : isHotel ? 'bg-[#4a4a4a]' : 'bg-[#7f7870]'}`}>
+                                                    {isMeal ? <Icons.Utensils className="w-2.5 text-white" /> : isHotel ? <Icons.Home className="w-2.5 text-white" /> : <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
+                                                </div>
+                                                
+                                                <div className="space-y-2">
+                                                    <span className="text-[10px] font-bold text-gray-300 tracking-wider">{act.time}</span>
+                                                    
+                                                    <a href={getMapLink(act.location)} target="_blank" className={`block text-base font-medium flex items-center gap-1 hover:underline ${isMeal ? 'text-[#8b735b] italic' : 'text-[#57534e]'}`}>
+                                                        {act.location}
+                                                        <Icons.MapPin className="w-3 h-3 opacity-50" />
+                                                    </a>
+                                                    
+                                                    {isHotel && (act.hasKitchen || act.hasMicrowave) && (
+                                                        <div className="flex gap-2 mt-1 mb-2">
+                                                            {act.hasKitchen && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold"><Icons.ChefHat className="w-3"/> 爐台</span>}
+                                                            {act.hasMicrowave && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold"><Icons.Zap className="w-3"/> 微波爐</span>}
+                                                        </div>
+                                                    )}
+
+                                                    {act.story && (
+                                                        <details className="group/story">
+                                                            <summary className="cursor-pointer list-none text-[11px] font-bold text-[#a68d71] flex items-center gap-1 hover:text-[#8b735b] transition-colors mb-1">
+                                                                <Icons.BookOpen className="w-3" /> 景點故事 (點擊展開)
+                                                            </summary>
+                                                            <div className="p-3 bg-white rounded-xl border border-[#f0eae4] text-[11px] text-gray-600 leading-relaxed card-shadow mt-2 animate-slide-in">
+                                                                {act.story}
+                                                            </div>
+                                                        </details>
+                                                    )}
+
+                                                    {act.desc && <div className="text-xs text-gray-500 font-light leading-relaxed whitespace-pre-line">{renderDesc(act.desc)}</div>}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {view === 'pay' && (
+                            <div className="space-y-6 animate-slide-in">
+                                <div className="p-8 bg-[#7f7870] rounded-3xl text-white shadow-xl relative overflow-hidden">
+                                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">總花費估算</p>
+                                    <h2 className="text-4xl font-light mt-2 tracking-tighter">NT$ {totalTwd.toLocaleString()}</h2>
+                                    <p className="text-[10px] mt-2 opacity-80">≈ AUD {(totalTwd/EXCHANGE_RATE).toFixed(2)}</p>
+                                    <div className="absolute -right-8 -bottom-8 opacity-10 rotate-12"><Icons.CreditCard className="w-40" /></div>
+                                </div>
+
+                                <form className="bg-white p-6 rounded-2xl border border-[#e5ded8] space-y-4" onSubmit={e => {
+                                    e.preventDefault();
+                                    const d = e.target.desc.value;
+                                    const a = e.target.amt.value;
+                                    if(!d || !a) return;
+                                    setExpenses([{id:Date.now(), desc:d, aud:parseFloat(a)}, ...expenses]);
+                                    e.target.reset();
+                                }}>
+                                    <h3 className="text-[10px] font-bold uppercase text-[#7f7870] tracking-widest">快速記帳</h3>
+                                    <input name="desc" type="text" placeholder="項目" className="w-full text-sm border-b border-[#e5ded8] py-2 focus:border-[#7f7870] outline-none bg-transparent" />
+                                    <input name="amt" type="number" placeholder="金額 (AUD)" className="w-full text-sm border-b border-[#e5ded8] py-2 focus:border-[#7f7870] outline-none bg-transparent" />
+                                    <button className="w-full py-3 bg-[#7f7870] text-white rounded-xl text-xs font-bold tracking-[0.2em] shadow-md hover:bg-[#6b655f] transition-all">確認紀錄</button>
+                                </form>
+
+                                <div className="space-y-3">
+                                    {expenses.map(e => (
+                                        <div key={e.id} className="flex justify-between items-center p-4 bg-white rounded-2xl border border-[#f0eae4] card-shadow">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-[#f9f7f4] flex items-center justify-center text-[#a68d71]"><Icons.CreditCard className="w-4" /></div>
+                                                <div>
+                                                    <p className="text-sm font-medium">{e.desc}</p>
+                                                    <p className="text-[9px] text-gray-400">NT$ {Math.round(e.aud * EXCHANGE_RATE).toLocaleString()}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <span className="text-sm font-bold text-[#7f7870]">${e.aud}</span>
+                                                <button onClick={() => setExpenses(expenses.filter(x => x.id !== e.id))} className="text-gray-200 hover:text-red-300"><Icons.Trash className="w-4" /></button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {view === 'todo' && (
+                            <div className="space-y-6 animate-slide-in">
+                                <div className="mb-6">
+                                    <h2 className="text-xl font-medium tracking-tight text-[#4a4a4a]">待辦清單</h2>
+                                    <p className="text-[10px] text-[#a68d71] font-bold uppercase mt-1 tracking-widest">Checklist</p>
+                                </div>
+
+                                <form className="flex gap-2" onSubmit={e => {
+                                    e.preventDefault();
+                                    addTodo(e.target.todo.value);
+                                    e.target.todo.value = '';
+                                }}>
+                                    <input name="todo" type="text" placeholder="新增待辦事項..." className="flex-1 bg-white border border-[#e5ded8] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#a68d71]" />
+                                    <button className="bg-[#7f7870] text-white w-12 rounded-xl flex items-center justify-center hover:bg-[#6b655f] transition-colors">
+                                        <Icons.Plus className="w-5" />
+                                    </button>
+                                </form>
+
+                                <div className="space-y-3">
+                                    {todos.map(t => (
+                                        <div key={t.id} className="bg-white p-4 rounded-2xl border border-[#f0eae4] card-shadow">
+                                            <div className="flex items-start gap-3">
+                                                <label className="checkbox-wrapper cursor-pointer pt-1">
+                                                    <input type="checkbox" checked={t.completed} onChange={() => toggleTodo(t.id)} className="hidden" />
+                                                    <div className={`w-5 h-5 rounded-md border border-[#e5ded8] flex items-center justify-center transition-colors ${t.completed ? 'bg-[#a68d71] border-[#a68d71]' : 'bg-white'}`}>
+                                                        <Icons.Check className={`w-3.5 text-white ${t.completed ? 'block' : 'hidden'}`} />
+                                                    </div>
+                                                </label>
+                                                
+                                                <div className="flex-1 space-y-2">
+                                                    <p className={`text-sm font-medium transition-all ${t.completed ? 'text-gray-300 line-through' : 'text-[#4a4a4a]'}`}>
+                                                        {t.text}
+                                                    </p>
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="備註..." 
+                                                        value={t.note}
+                                                        onChange={(e) => updateNote(t.id, e.target.value)}
+                                                        className="w-full text-xs bg-transparent border-b border-transparent focus:border-[#e5ded8] outline-none text-gray-500 placeholder-gray-300 py-1"
+                                                    />
+                                                </div>
+
+                                                <button onClick={() => deleteTodo(t.id)} className="text-gray-300 hover:text-red-300 transition-colors pt-1">
+                                                    <Icons.Trash className="w-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </main>
+
+                    <nav className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-[360px] bg-white/80 backdrop-blur-xl border border-white/40 rounded-3xl shadow-2xl z-50 p-1.5 flex justify-between">
+                        <button onClick={() => setView('plan')} className={`flex-1 flex flex-col items-center py-3 rounded-2xl transition-all ${view === 'plan' ? 'bg-[#7f7870] text-white shadow-lg scale-[1.05]' : 'text-gray-300'}`}>
+                            <Icons.Calendar className="w-5" />
+                            <span className="text-[8px] font-bold mt-1 uppercase">Plan</span>
+                        </button>
+                        <button onClick={() => setView('todo')} className={`flex-1 flex flex-col items-center py-3 rounded-2xl transition-all ${view === 'todo' ? 'bg-[#7f7870] text-white shadow-lg scale-[1.05]' : 'text-gray-300'}`}>
+                            <Icons.CheckList className="w-5" />
+                            <span className="text-[8px] font-bold mt-1 uppercase">List</span>
+                        </button>
+                        <button onClick={() => setView('pay')} className={`flex-1 flex flex-col items-center py-3 rounded-2xl transition-all ${view === 'pay' ? 'bg-[#7f7870] text-white shadow-lg scale-[1.05]' : 'text-gray-300'}`}>
+                            <Icons.CreditCard className="w-5" />
+                            <span className="text-[8px] font-bold mt-1 uppercase">Pay</span>
+                        </button>
+                    </nav>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+
+    </script>
+</body>
+</html>
